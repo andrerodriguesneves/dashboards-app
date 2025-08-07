@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Plus, Trash2, Settings, Save, Eye } from 'lucide-react';
+import { X, Plus, Trash2, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Category {
@@ -23,14 +23,14 @@ interface Dashboard {
 
 interface AdminPanelProps {
   onClose: () => void;
-  onLogout: () => void;
   dashboards: Dashboard[];
+  setDashboards: (dashboards: Dashboard[]) => void;
 }
 
 export default function AdminPanel({
   onClose,
-  onLogout,
-  dashboards
+  dashboards,
+  setDashboards
 }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'categories' | 'dashboards'>('categories');
   const [loading, setLoading] = useState(false);
@@ -140,10 +140,11 @@ export default function AdminPanel({
         area: newDashboard.category
       };
 
-      // Aqui você faria a chamada para a API
-      // await fetch('/api/dashboards', { method: 'POST', body: JSON.stringify(dashboard) });
-      
+      // Adicionar o novo dashboard à lista
+      setDashboards([...dashboards, dashboard]);
       setNewDashboard({ title: '', description: '', embed_url: '', category: '' });
+      
+      // Notificação de sucesso
       toast.success('Dashboard adicionado com sucesso!');
     } catch (error) {
       console.error('Erro ao adicionar dashboard:', error);
@@ -159,8 +160,8 @@ export default function AdminPanel({
     }
 
     try {
-      // Aqui você faria a chamada para a API
-      // await fetch(`/api/dashboards/${id}`, { method: 'DELETE' });
+      // Remover o dashboard da lista
+      setDashboards(dashboards.filter(d => d.id !== id));
       toast.success('Dashboard removido com sucesso!');
     } catch (error) {
       console.error('Erro ao remover dashboard:', error);
@@ -169,28 +170,20 @@ export default function AdminPanel({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">Configurações de Negócio</h2>
             <p className="text-gray-600 mt-1">Configure categorias, dashboards e textos do sistema</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={onLogout}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-            >
-              Sair
-            </button>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <X size={24} />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 p-2"
+          >
+            <X size={24} />
+          </button>
         </div>
 
         {/* Tabs */}
@@ -218,7 +211,7 @@ export default function AdminPanel({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'categories' && (
             <div className="space-y-6">
               {/* Adicionar Nova Categoria */}

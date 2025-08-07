@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, Bell, User, Search, Heart, Eye, ExternalLink, ChevronDown } from 'lucide-react';
+import { Settings, Search, Heart, Eye, ExternalLink, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LoginModal from './components/LoginModal';
 import AdminPanel from './components/AdminPanel';
+import { accessControl, validateKey, clearAccess } from '../lib/access-control';
 
 // Dashboards de exemplo
 const exampleDashboards = [
@@ -60,16 +61,21 @@ const exampleDashboards = [
   }
 ];
 
+
+
 export default function Home() {
   const [dashboards, setDashboards] = useState(exampleDashboards);
   const [showLogin, setShowLogin] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasAdminAccess, setHasAdminAccess] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArea, setSelectedArea] = useState('Todas as Áreas');
+  const [adminKey, setAdminKey] = useState('');
 
   useEffect(() => {
     checkAuthStatus();
+    checkAdminAccess();
   }, []);
 
   const checkAuthStatus = () => {
@@ -77,18 +83,37 @@ export default function Home() {
     setIsAuthenticated(!!token);
   };
 
+  const checkAdminAccess = () => {
+    setHasAdminAccess(accessControl.hasAdminAccess());
+  };
+
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
+    setHasAdminAccess(true);
     setShowLogin(false);
     setShowAdmin(true);
     toast.success('Login realizado com sucesso!');
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_token');
+    clearAccess();
     setIsAuthenticated(false);
+    setHasAdminAccess(false);
     setShowAdmin(false);
     toast.success('Logout realizado com sucesso!');
+  };
+
+  const handleAdminKeySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateKey(adminKey)) {
+      accessControl.setAccess(undefined, adminKey);
+      setHasAdminAccess(true);
+      setShowAdmin(true);
+      setAdminKey('');
+      toast.success('Acesso administrativo concedido!');
+    } else {
+      toast.error('Chave de acesso inválida!');
+    }
   };
 
   const toggleFavorite = (id: string) => {
@@ -127,22 +152,26 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => isAuthenticated ? setShowAdmin(true) : setShowLogin(true)}
-                className="p-2 text-gray-600 hover:text-gray-800"
-                title="Configurações"
-              >
-                <Settings size={20} />
-              </button>
-              <button className="p-2 text-gray-600 hover:text-gray-800 relative">
-                <Bell size={20} />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                  2
-                </span>
-              </button>
-              <button className="p-2 text-gray-600 hover:text-gray-800">
-                <User size={20} />
-              </button>
+              {/* Botão de configurações com política de acesso */}
+              {hasAdminAccess && (
+                <button
+                  onClick={() => setShowAdmin(true)}
+                  className="p-2 text-gray-600 hover:text-gray-800"
+                  title="Configurações Administrativas"
+                >
+                  <Settings size={20} />
+                </button>
+              )}
+              {/* Botão de login para usuários sem acesso */}
+              {!hasAdminAccess && (
+                <button
+                  onClick={() => setShowLogin(true)}
+                  className="p-2 text-gray-600 hover:text-gray-800"
+                  title="Acesso Administrativo"
+                >
+                  <Settings size={20} />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -156,12 +185,57 @@ export default function Home() {
         />
       )}
 
+      {/* Modal de Chave de Acesso */}
+      {!hasAdminAccess && !isAuthenticated && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Acesso Administrativo</h2>
+              <button
+                onClick={() => setShowLogin(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Digite a chave de acesso para entrar no painel administrativo:
+            </p>
+            <form onSubmit={handleAdminKeySubmit} className="space-y-4">
+              <input
+                type="password"
+                value={adminKey}
+                onChange={(e) => setAdminKey(e.target.value)}
+                placeholder="Chave de acesso"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                required
+              />
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowLogin(true)}
+                  className="flex-1 px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Login
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  Acessar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Painel Administrativo */}
-      {showAdmin && isAuthenticated && (
+      {showAdmin && hasAdminAccess && (
         <AdminPanel
           onClose={() => setShowAdmin(false)}
-          onLogout={handleLogout}
           dashboards={dashboards}
+          setDashboards={setDashboards}
         />
       )}
 
