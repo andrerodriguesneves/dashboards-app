@@ -1,0 +1,163 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #dc2626;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Estilos para os cards de dashboard */
+.dashboard-card {
+  @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow;
+}
+
+.dashboard-card:hover {
+  @apply shadow-lg;
+}
+
+/* Estilos para botões */
+.btn-primary {
+  @apply bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors;
+}
+
+.btn-danger {
+  @apply bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors;
+}
+
+/* Estilos para inputs */
+.input-field {
+  @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors;
+}
+
+/* Estilos para tags */
+.tag {
+  @apply px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full;
+}
+
+/* Estilos para o modal */
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+}
+
+.modal-content {
+  @apply bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden;
+}
+
+/* Estilos para animações */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estilos para scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Estilos para focus visível */
+.focus-visible:focus {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+/* Estilos para loading */
+.loading-spinner {
+  @apply animate-spin rounded-full h-5 w-5 border-b-2 border-white;
+}
+
+/* Estilos para notificações */
+.notification-badge {
+  @apply absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center;
+}
+
+/* Estilos para dropdown */
+.dropdown-select {
+  @apply appearance-none px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent;
+}
+
+/* Estilos para botões de ação */
+.action-button {
+  @apply flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors;
+}
+
+/* Estilos para cards de dashboard melhorados */
+.dashboard-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.dashboard-item {
+  @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow;
+}
+
+.dashboard-header {
+  @apply flex justify-between items-start mb-4;
+}
+
+.dashboard-title {
+  @apply text-lg font-semibold text-gray-900;
+}
+
+.dashboard-description {
+  @apply text-gray-600 text-sm mb-4;
+}
+
+.dashboard-tags {
+  @apply flex flex-wrap gap-2 mb-4;
+}
+
+.dashboard-actions {
+  @apply flex items-center justify-between;
+}
+
+/* Estilos para favoritos */
+.favorite-button {
+  @apply text-gray-400 hover:text-red-500 transition-colors;
+}
+
+.favorite-button.active {
+  @apply text-red-500 fill-red-500;
+}
+
+/* Estilos para busca */
+.search-container {
+  @apply relative;
+}
+
+.search-input {
+  @apply w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent;
+}
+
+.search-icon {
+  @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4;
+} 
