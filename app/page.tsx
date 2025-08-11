@@ -5,6 +5,9 @@ import { Settings, Search, Heart, Eye, ExternalLink, ChevronDown } from 'lucide-
 import toast from 'react-hot-toast';
 import LoginModal from './components/LoginModal';
 import AdminPanel from './components/AdminPanel';
+import PortalConfig from './components/PortalConfig';
+import SecurityConfig from './components/SecurityConfig';
+import DynamicFavicon from './components/DynamicFavicon';
 import { accessControl, validateKey, clearAccess } from '../lib/access-control';
 
 // Dashboards de exemplo
@@ -67,11 +70,22 @@ export default function Home() {
   const [dashboards, setDashboards] = useState(exampleDashboards);
   const [showLogin, setShowLogin] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showPortalConfig, setShowPortalConfig] = useState(false);
+  const [showSecurityConfig, setShowSecurityConfig] = useState(false);
+  const [showAccessModal, setShowAccessModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasAdminAccess, setHasAdminAccess] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArea, setSelectedArea] = useState('Todas as Áreas');
   const [adminKey, setAdminKey] = useState('');
+  
+  // Estado do portal
+  const [portalConfig, setPortalConfig] = useState({
+    name: 'Portal Corporativo',
+    logo: '',
+    primaryColor: '#cc0000',
+    description: 'Acesse dashboards e relatórios gerenciais de todas as áreas da empresa'
+  });
 
   useEffect(() => {
     checkAuthStatus();
@@ -84,7 +98,8 @@ export default function Home() {
   };
 
   const checkAdminAccess = () => {
-    setHasAdminAccess(accessControl.hasAdminAccess());
+    // Não verificar acesso automaticamente - só quando necessário
+    setHasAdminAccess(false);
   };
 
   const handleLoginSuccess = () => {
@@ -103,9 +118,10 @@ export default function Home() {
     toast.success('Logout realizado com sucesso!');
   };
 
-  const handleAdminKeySubmit = (e: React.FormEvent) => {
+  const handleAdminKeySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateKey(adminKey)) {
+    const isValid = await validateKey(adminKey);
+    if (isValid) {
       accessControl.setAccess(undefined, adminKey);
       setHasAdminAccess(true);
       setShowAdmin(true);
@@ -114,6 +130,24 @@ export default function Home() {
     } else {
       toast.error('Chave de acesso inválida!');
     }
+  };
+
+  const handlePortalConfigSave = (config: any) => {
+    setPortalConfig(config);
+    // Aqui você salvaria no banco de dados
+    localStorage.setItem('portal_config', JSON.stringify(config));
+  };
+
+  const handleSecurityConfigSave = (config: any) => {
+    // Atualizar a chave de acesso no sistema
+    accessControl.setAccess(undefined, config.adminKey);
+    
+    toast.success('Configurações de segurança atualizadas!');
+    
+    // Recarregar a página para aplicar as mudanças
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
   };
 
   const toggleFavorite = (id: string) => {
@@ -136,42 +170,48 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <DynamicFavicon logoUrl={portalConfig.logo} />
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-bold text-red-600">Portal Corporativo</h1>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="Buscar dashboards, relatórios..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
+              <div className="flex items-center space-x-3">
+                {/* Logo */}
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" 
+                       style={{ backgroundColor: portalConfig.primaryColor }}>
+                    {portalConfig.logo ? (
+                      <img 
+                        src={portalConfig.logo} 
+                        alt="Logo" 
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-white font-bold text-sm">P</span>
+                    )}
+                  </div>
+                  <h1 className="text-xl font-bold" style={{ color: portalConfig.primaryColor }}>
+                    {portalConfig.name}
+                  </h1>
+                </div>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {/* Botão de configurações com política de acesso */}
-              {hasAdminAccess && (
-                <button
-                  onClick={() => setShowAdmin(true)}
-                  className="p-2 text-gray-600 hover:text-gray-800"
-                  title="Configurações Administrativas"
-                >
-                  <Settings size={20} />
-                </button>
-              )}
-              {/* Botão de login para usuários sem acesso */}
-              {!hasAdminAccess && (
-                <button
-                  onClick={() => setShowLogin(true)}
-                  className="p-2 text-gray-600 hover:text-gray-800"
-                  title="Acesso Administrativo"
-                >
-                  <Settings size={20} />
-                </button>
-              )}
+              {/* Botão de configurações */}
+              <button
+                onClick={() => {
+                  if (hasAdminAccess || isAuthenticated) {
+                    setShowAdmin(true);
+                  } else {
+                    setShowAccessModal(true);
+                  }
+                }}
+                className="p-2 text-gray-600 hover:text-gray-800"
+                title="Configurações Administrativas"
+              >
+                <Settings size={20} />
+              </button>
             </div>
           </div>
         </div>
@@ -185,14 +225,14 @@ export default function Home() {
         />
       )}
 
-      {/* Modal de Chave de Acesso */}
-      {!hasAdminAccess && !isAuthenticated && (
+      {/* Modal de Acesso Administrativo */}
+      {showAccessModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-800">Acesso Administrativo</h2>
               <button
-                onClick={() => setShowLogin(false)}
+                onClick={() => setShowAccessModal(false)}
                 className="text-gray-500 hover:text-gray-700"
               >
                 ×
@@ -206,29 +246,22 @@ export default function Home() {
                 type="password"
                 value={adminKey}
                 onChange={(e) => setAdminKey(e.target.value)}
-                placeholder="Chave de acesso"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Digite a chave de acesso"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 required
               />
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowLogin(true)}
-                  className="flex-1 px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Login
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                >
-                  Acessar
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="w-full px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Acessar Painel
+              </button>
             </form>
           </div>
         </div>
       )}
+
+
 
       {/* Painel Administrativo */}
       {showAdmin && hasAdminAccess && (
@@ -236,6 +269,28 @@ export default function Home() {
           onClose={() => setShowAdmin(false)}
           dashboards={dashboards}
           setDashboards={setDashboards}
+          onOpenPortalConfig={() => setShowPortalConfig(true)}
+          onOpenSecurityConfig={() => setShowSecurityConfig(true)}
+        />
+      )}
+
+      {/* Configurações do Portal */}
+      {showPortalConfig && (
+        <PortalConfig
+          onClose={() => setShowPortalConfig(false)}
+          onSave={handlePortalConfigSave}
+          currentConfig={portalConfig}
+        />
+      )}
+
+      {/* Configurações de Segurança */}
+      {showSecurityConfig && (
+        <SecurityConfig
+          onClose={() => setShowSecurityConfig(false)}
+          onSave={handleSecurityConfigSave}
+          currentConfig={{
+            adminKey: 'admin2024'
+          }}
         />
       )}
 
@@ -247,7 +302,7 @@ export default function Home() {
             Portal de Dashboards
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Acesse dashboards e relatórios gerenciais de todas as áreas da empresa
+            {portalConfig.description}
           </p>
         </div>
 
@@ -313,11 +368,18 @@ export default function Home() {
               </div>
               
               <div className="flex items-center justify-between mt-auto">
-                <button className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                <button 
+                  onClick={() => window.open(dashboard.embed_url, '_blank')}
+                  className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                >
                   <Eye size={16} />
                   <span>Visualizar</span>
                 </button>
-                <button className="text-gray-400 hover:text-gray-600">
+                <button 
+                  onClick={() => window.open(dashboard.embed_url, '_blank')}
+                  className="text-gray-400 hover:text-gray-600"
+                  title="Abrir em nova aba"
+                >
                   <ExternalLink size={16} />
                 </button>
               </div>

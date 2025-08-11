@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Plus, Trash2, Save } from 'lucide-react';
+import { X, Plus, Trash2, Save, Settings, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Category {
@@ -25,14 +25,18 @@ interface AdminPanelProps {
   onClose: () => void;
   dashboards: Dashboard[];
   setDashboards: (dashboards: Dashboard[]) => void;
+  onOpenPortalConfig: () => void;
+  onOpenSecurityConfig: () => void;
 }
 
 export default function AdminPanel({
   onClose,
   dashboards,
-  setDashboards
+  setDashboards,
+  onOpenPortalConfig,
+  onOpenSecurityConfig
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'categories' | 'dashboards'>('categories');
+  const [activeTab, setActiveTab] = useState<'categories' | 'dashboards' | 'portal' | 'security'>('categories');
   const [loading, setLoading] = useState(false);
 
   // Estado para categorias
@@ -207,6 +211,26 @@ export default function AdminPanel({
             }`}
           >
             Dashboards
+          </button>
+          <button
+            onClick={() => setActiveTab('portal')}
+            className={`px-6 py-3 font-medium ${
+              activeTab === 'portal'
+                ? 'text-red-600 border-b-2 border-red-600 bg-white'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Portal
+          </button>
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`px-6 py-3 font-medium ${
+              activeTab === 'security'
+                ? 'text-red-600 border-b-2 border-red-600 bg-white'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Segurança
           </button>
         </div>
 
@@ -396,6 +420,42 @@ export default function AdminPanel({
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'portal' && (
+            <div className="space-y-6">
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold mb-4">Configurações do Portal</h3>
+                <p className="text-gray-600 mb-4">
+                  Personalize a aparência do portal, incluindo logo, cores e textos.
+                </p>
+                <button
+                  onClick={onOpenPortalConfig}
+                  className="btn-primary flex items-center"
+                >
+                  <Settings size={16} className="mr-2" />
+                  Configurar Portal
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <div className="space-y-6">
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold mb-4">Configurações de Segurança</h3>
+                <p className="text-gray-600 mb-4">
+                  Altere a chave de acesso e credenciais de login do sistema.
+                </p>
+                <button
+                  onClick={onOpenSecurityConfig}
+                  className="btn-primary flex items-center"
+                >
+                  <Lock size={16} className="mr-2" />
+                  Configurar Segurança
+                </button>
               </div>
             </div>
           )}

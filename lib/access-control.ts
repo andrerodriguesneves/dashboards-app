@@ -18,7 +18,7 @@ export interface AccessConfig {
 
 // Configuração padrão
 export const ACCESS_CONFIG: AccessConfig = {
-  // Chave secreta para acessar configurações (ALTERE ESTA CHAVE!)
+  // Chave secreta para acessar configurações (será carregada dinamicamente)
   ADMIN_KEY: 'admin2024',
   
   // IPs permitidos (opcional - deixe vazio para permitir todos)
@@ -44,17 +44,50 @@ export class AccessControl {
     this.config = config;
   }
 
+  // Obter configurações de segurança do localStorage ou banco
+  private async getSecurityConfig() {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      // Tentar buscar do banco de dados primeiro
+      const response = await fetch('/api/security');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.config) {
+          return result.config;
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar configurações do banco:', error);
+    }
+    
+    // Fallback para localStorage
+    const stored = localStorage.getItem('security_config');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (error) {
+        console.error('Erro ao carregar configurações de segurança:', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
   // Verificar se o usuário tem acesso administrativo
-  hasAdminAccess(): boolean {
+  async hasAdminAccess(): Promise<boolean> {
     // Verificar token JWT
     const token = localStorage.getItem('admin_token');
     if (token) {
       return true;
     }
 
-    // Verificar chave de acesso
+    // Verificar chave de acesso (dinâmica)
     const storedKey = localStorage.getItem('admin_key');
-    if (storedKey === this.config.ADMIN_KEY) {
+    const securityConfig = await this.getSecurityConfig();
+    const adminKey = securityConfig?.admin_key || this.config.ADMIN_KEY;
+    
+    if (storedKey === adminKey) {
       return true;
     }
 
@@ -91,8 +124,10 @@ export class AccessControl {
   }
 
   // Validar chave de acesso
-  validateAccessKey(key: string): boolean {
-    return key === this.config.ADMIN_KEY;
+  async validateAccessKey(key: string): Promise<boolean> {
+    const securityConfig = await this.getSecurityConfig();
+    const adminKey = securityConfig?.admin_key || this.config.ADMIN_KEY;
+    return key === adminKey;
   }
 
   // Verificar se o usuário está autenticado
@@ -133,7 +168,7 @@ export class AccessControl {
 export const accessControl = new AccessControl();
 
 // Funções utilitárias
-export const checkAdminAccess = () => accessControl.hasAdminAccess();
-export const validateKey = (key: string) => accessControl.validateAccessKey(key);
+export const checkAdminAccess = async () => await accessControl.hasAdminAccess();
+export const validateKey = async (key: string) => await accessControl.validateAccessKey(key);
 export const clearAccess = () => accessControl.clearAccess();
 export const getAccessInfo = () => accessControl.getAccessInfo(); 

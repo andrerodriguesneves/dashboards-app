@@ -19,7 +19,9 @@ export const {
   removeDashboard,
   getPortalConfig,
   updatePortalConfig,
-  verifyAdminCredentials
+  verifyAdminCredentials,
+  getSecurityConfig,
+  updateSecurityConfig
 } = databaseModule;
 
 export type { Dashboard, PortalConfig } from './database-sqlite'; 

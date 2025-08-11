@@ -81,6 +81,27 @@ export async function initDatabase() {
       `, ['admin', hashedPassword]);
     }
 
+    // Criar tabela de configurações de segurança
+    await database.exec(`
+      CREATE TABLE IF NOT EXISTS security_config (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        admin_key TEXT NOT NULL DEFAULT 'admin2024',
+        admin_username TEXT NOT NULL DEFAULT 'admin',
+        admin_password TEXT NOT NULL DEFAULT 'admin123',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Inserir configuração de segurança padrão se não existir
+    const securityExists = await database.get('SELECT COUNT(*) as count FROM security_config');
+    if (securityExists.count === 0) {
+      await database.run(`
+        INSERT INTO security_config (admin_key, admin_username, admin_password)
+        VALUES (?, ?, ?)
+      `, ['admin2024', 'admin', 'admin123']);
+    }
+
   } catch (error) {
     console.error('Erro ao inicializar banco de dados:', error);
     throw error;
@@ -182,5 +203,42 @@ export async function verifyAdminCredentials(username: string, password: string)
   } catch (error) {
     console.error('Erro ao verificar credenciais:', error);
     return false;
+  }
+}
+
+export async function getSecurityConfig(): Promise<any> {
+  try {
+    const database = await getDatabase();
+    const config = await database.get('SELECT * FROM security_config LIMIT 1');
+    return config;
+  } catch (error) {
+    console.error('Erro ao buscar configurações de segurança:', error);
+    return null;
+  }
+}
+
+export async function updateSecurityConfig(config: any): Promise<void> {
+  try {
+    const database = await getDatabase();
+    
+    // Verificar se já existe configuração
+    const existing = await database.get('SELECT * FROM security_config LIMIT 1');
+    
+    if (existing) {
+      // Atualizar configuração existente
+      await database.run(
+        'UPDATE security_config SET admin_key = ?, updated_at = ?',
+        [config.adminKey, new Date().toISOString()]
+      );
+    } else {
+      // Criar nova configuração
+      await database.run(
+        'INSERT INTO security_config (admin_key, created_at, updated_at) VALUES (?, ?, ?)',
+        [config.adminKey, new Date().toISOString(), new Date().toISOString()]
+      );
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar configurações de segurança:', error);
+    throw error;
   }
 } 
