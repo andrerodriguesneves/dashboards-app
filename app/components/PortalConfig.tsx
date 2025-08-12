@@ -44,17 +44,37 @@ export default function PortalConfig({
     e.preventDefault();
     
     try {
-      // Aqui você faria o upload do logo para um servidor
-      // Por enquanto, vamos simular
+      let logoUrl = config.logo;
+
+      // Upload do logo se um novo arquivo foi selecionado
       if (logoFile) {
-        // Simular upload
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const formData = new FormData();
+        formData.append('file', logoFile);
+
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          logoUrl = uploadResult.url;
+        } else {
+          throw new Error('Erro no upload do logo');
+        }
       }
 
-      onSave(config);
+      // Salvar configurações com a nova URL do logo
+      const updatedConfig = {
+        ...config,
+        logo: logoUrl
+      };
+
+      onSave(updatedConfig);
       toast.success('Configurações salvas com sucesso!');
       onClose();
     } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
       toast.error('Erro ao salvar configurações');
     }
   };

@@ -90,7 +90,25 @@ export default function Home() {
   useEffect(() => {
     checkAuthStatus();
     checkAdminAccess();
+    loadPortalConfig();
   }, []);
+
+  const loadPortalConfig = async () => {
+    try {
+      const response = await fetch('/api/config');
+      if (response.ok) {
+        const config = await response.json();
+        setPortalConfig({
+          name: config.portal_name || 'Portal Corporativo',
+          logo: config.logo_url || '',
+          primaryColor: config.primary_color || '#cc0000',
+          description: config.description || 'Acesse dashboards e relatórios gerenciais de todas as áreas da empresa'
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações do portal:', error);
+    }
+  };
 
   const checkAuthStatus = () => {
     const token = localStorage.getItem('admin_token');
@@ -125,6 +143,7 @@ export default function Home() {
       accessControl.setAccess(undefined, adminKey);
       setHasAdminAccess(true);
       setShowAdmin(true);
+      setShowAccessModal(false); // Fechar o modal de acesso
       setAdminKey('');
       toast.success('Acesso administrativo concedido!');
     } else {
@@ -132,10 +151,31 @@ export default function Home() {
     }
   };
 
-  const handlePortalConfigSave = (config: any) => {
-    setPortalConfig(config);
-    // Aqui você salvaria no banco de dados
-    localStorage.setItem('portal_config', JSON.stringify(config));
+  const handlePortalConfigSave = async (config: any) => {
+    try {
+      const response = await fetch('/api/config', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          portal_name: config.name,
+          logo_url: config.logo,
+          primary_color: config.primaryColor,
+          description: config.description
+        }),
+      });
+
+      if (response.ok) {
+        setPortalConfig(config);
+        toast.success('Configurações do portal atualizadas!');
+      } else {
+        toast.error('Erro ao salvar configurações');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
+      toast.error('Erro ao salvar configurações');
+    }
   };
 
   const handleSecurityConfigSave = (config: any) => {
@@ -151,9 +191,19 @@ export default function Home() {
   };
 
   const toggleFavorite = (id: string) => {
-    setDashboards(prev => prev.map(d => 
-      d.id === id ? { ...d, isFavorite: !d.isFavorite } : d
-    ));
+    console.log('Toggle favorite for id:', id);
+    
+    setDashboards(prev => {
+      const updated = prev.map(d => {
+        if (d.id === id) {
+          const newFavoriteState = !d.isFavorite;
+          console.log('Toggling dashboard:', d.title, 'from', d.isFavorite, 'to', newFavoriteState);
+          return { ...d, isFavorite: newFavoriteState };
+        }
+        return d;
+      });
+      return updated;
+    });
   };
 
   const filteredDashboards = dashboards.filter(dashboard => {
@@ -201,13 +251,10 @@ export default function Home() {
               {/* Botão de configurações */}
               <button
                 onClick={() => {
-                  if (hasAdminAccess || isAuthenticated) {
-                    setShowAdmin(true);
-                  } else {
-                    setShowAccessModal(true);
-                  }
+                  console.log('Config button clicked. hasAdminAccess:', hasAdminAccess, 'isAuthenticated:', isAuthenticated);
+                  setShowAccessModal(true);
                 }}
-                className="p-2 text-gray-600 hover:text-gray-800"
+                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
                 title="Configurações Administrativas"
               >
                 <Settings size={20} />
@@ -232,7 +279,10 @@ export default function Home() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-800">Acesso Administrativo</h2>
               <button
-                onClick={() => setShowAccessModal(false)}
+                onClick={() => {
+                  console.log('Closing access modal');
+                  setShowAccessModal(false);
+                }}
                 className="text-gray-500 hover:text-gray-700"
               >
                 ×
@@ -264,7 +314,7 @@ export default function Home() {
 
 
       {/* Painel Administrativo */}
-      {showAdmin && hasAdminAccess && (
+      {showAdmin && (hasAdminAccess || isAuthenticated) && (
         <AdminPanel
           onClose={() => setShowAdmin(false)}
           dashboards={dashboards}
@@ -348,9 +398,16 @@ export default function Home() {
                 <h3 className="text-lg font-semibold text-gray-900">{dashboard.title}</h3>
                 <button
                   onClick={() => toggleFavorite(dashboard.id)}
-                  className="text-gray-400 hover:text-red-500 flex-shrink-0"
+                  className="text-gray-400 hover:text-red-500 flex-shrink-0 transition-colors"
                 >
-                  <Heart size={16} className={dashboard.isFavorite ? 'fill-red-500 text-red-500' : ''} />
+                  <Heart 
+                    size={16} 
+                    className={`${dashboard.isFavorite ? 'fill-red-500 text-red-500' : 'fill-transparent'}`}
+                    style={{ 
+                      fill: dashboard.isFavorite ? '#ef4444' : 'transparent',
+                      color: dashboard.isFavorite ? '#ef4444' : '#9ca3af'
+                    }}
+                  />
                 </button>
               </div>
               
