@@ -10,6 +10,18 @@ import SecurityConfig from './components/SecurityConfig';
 import DynamicFavicon from './components/DynamicFavicon';
 import { accessControl, validateKey, clearAccess } from '../lib/access-control';
 
+// Tipo para Dashboard
+interface Dashboard {
+  id: string;
+  title: string;
+  description: string;
+  embed_url: string;
+  tags: string[];
+  isFavorite: boolean;
+  area: string;
+  category: string;
+}
+
 // Dashboards de exemplo (fallback)
 const exampleDashboards = [
   {
@@ -65,7 +77,7 @@ const exampleDashboards = [
 ];
 
 export default function Home() {
-  const [dashboards, setDashboards] = useState([]);
+  const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
