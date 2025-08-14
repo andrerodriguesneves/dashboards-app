@@ -10,7 +10,7 @@ import SecurityConfig from './components/SecurityConfig';
 import DynamicFavicon from './components/DynamicFavicon';
 import { accessControl, validateKey, clearAccess } from '../lib/access-control';
 
-// Dashboards de exemplo
+// Dashboards de exemplo (fallback)
 const exampleDashboards = [
   {
     id: '1',
@@ -64,10 +64,9 @@ const exampleDashboards = [
   }
 ];
 
-
-
 export default function Home() {
-  const [dashboards, setDashboards] = useState(exampleDashboards);
+  const [dashboards, setDashboards] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showPortalConfig, setShowPortalConfig] = useState(false);
@@ -91,7 +90,44 @@ export default function Home() {
     checkAuthStatus();
     checkAdminAccess();
     loadPortalConfig();
+    loadDashboards();
   }, []);
+
+  // Função para carregar dashboards do banco de dados
+  const loadDashboards = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/dashboards');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Dashboards carregados do banco:', data);
+        
+        // Converter os dados do banco para o formato esperado pelo frontend
+        const formattedDashboards = data.map((dashboard: any) => ({
+          id: dashboard.id.toString(),
+          title: dashboard.title,
+          description: dashboard.description || 'Dashboard sem descrição',
+          embed_url: dashboard.embed_url,
+          tags: dashboard.tags || [],
+          isFavorite: dashboard.is_favorite || false,
+          area: dashboard.area || 'Geral',
+          category: dashboard.category || 'geral'
+        }));
+        
+        setDashboards(formattedDashboards);
+      } else {
+        console.error('Erro ao carregar dashboards:', response.status);
+        // Usar dados de exemplo como fallback
+        setDashboards(exampleDashboards);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dashboards:', error);
+      // Usar dados de exemplo como fallback
+      setDashboards(exampleDashboards);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadPortalConfig = async () => {
     try {
@@ -311,8 +347,6 @@ export default function Home() {
         </div>
       )}
 
-
-
       {/* Painel Administrativo */}
       {showAdmin && (hasAdminAccess || isAuthenticated) && (
         <AdminPanel
@@ -390,61 +424,72 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Grade de Dashboards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDashboards.map((dashboard) => (
-            <div key={dashboard.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow flex flex-col h-full">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">{dashboard.title}</h3>
-                <button
-                  onClick={() => toggleFavorite(dashboard.id)}
-                  className="text-gray-400 hover:text-red-500 flex-shrink-0 transition-colors"
-                >
-                  <Heart 
-                    size={16} 
-                    className={`${dashboard.isFavorite ? 'fill-red-500 text-red-500' : 'fill-transparent'}`}
-                    style={{ 
-                      fill: dashboard.isFavorite ? '#ef4444' : 'transparent',
-                      color: dashboard.isFavorite ? '#ef4444' : '#9ca3af'
-                    }}
-                  />
-                </button>
-              </div>
-              
-              <p className="text-gray-600 text-sm mb-4 flex-grow">{dashboard.description}</p>
-              
-              <div className="flex flex-wrap gap-2 mb-4">
-                {dashboard.tags.map((tag: string, index: number) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              
-              <div className="flex items-center justify-between mt-auto">
-                <button 
-                  onClick={() => window.open(dashboard.embed_url, '_blank')}
-                  className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  <Eye size={16} />
-                  <span>Visualizar</span>
-                </button>
-                <button 
-                  onClick={() => window.open(dashboard.embed_url, '_blank')}
-                  className="text-gray-400 hover:text-gray-600"
-                  title="Abrir em nova aba"
-                >
-                  <ExternalLink size={16} />
-                </button>
-              </div>
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="text-gray-500 text-lg">
+              Carregando dashboards...
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
-        {filteredDashboards.length === 0 && (
+        {/* Grade de Dashboards */}
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredDashboards.map((dashboard) => (
+              <div key={dashboard.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow flex flex-col h-full">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">{dashboard.title}</h3>
+                  <button
+                    onClick={() => toggleFavorite(dashboard.id)}
+                    className="text-gray-400 hover:text-red-500 flex-shrink-0 transition-colors"
+                  >
+                    <Heart 
+                      size={16} 
+                      className={`${dashboard.isFavorite ? 'fill-red-500 text-red-500' : 'fill-transparent'}`}
+                      style={{ 
+                        fill: dashboard.isFavorite ? '#ef4444' : 'transparent',
+                        color: dashboard.isFavorite ? '#ef4444' : '#9ca3af'
+                      }}
+                    />
+                  </button>
+                </div>
+                
+                <p className="text-gray-600 text-sm mb-4 flex-grow">{dashboard.description}</p>
+                
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {dashboard.tags.map((tag: string, index: number) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                
+                <div className="flex items-center justify-between mt-auto">
+                  <button 
+                    onClick={() => window.open(dashboard.embed_url, '_blank')}
+                    className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <Eye size={16} />
+                    <span>Visualizar</span>
+                  </button>
+                  <button 
+                    onClick={() => window.open(dashboard.embed_url, '_blank')}
+                    className="text-gray-400 hover:text-gray-600"
+                    title="Abrir em nova aba"
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && filteredDashboards.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-500 text-lg">
               Nenhum dashboard encontrado.
