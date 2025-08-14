@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Save, Settings, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -40,28 +40,24 @@ export default function AdminPanel({
   const [loading, setLoading] = useState(false);
 
   // Estado para categorias
-  const [categories, setCategories] = useState<Category[]>([
-    {
-      id: 'financeiro',
-      name: 'Financeiro',
-      subcategories: ['Fluxo de Caixa', 'Faturamento', 'Custos', 'Orçamento']
-    },
-    {
-      id: 'rh',
-      name: 'Recursos Humanos',
-      subcategories: ['Headcount', 'Performance', 'Turnover', 'Recrutamento']
-    },
-    {
-      id: 'vendas',
-      name: 'Vendas',
-      subcategories: ['Pipeline', 'Conversão', 'Metas', 'Territórios']
-    },
-    {
-      id: 'operacoes',
-      name: 'Operações',
-      subcategories: ['Produção', 'Qualidade', 'Logística', 'Manutenção']
-    }
-  ]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  // Carregar categorias do banco de dados
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await fetch('/api/categories');
+        if (response.ok) {
+          const categoriesData = await response.json();
+          setCategories(categoriesData);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar categorias:', error);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   const [newCategory, setNewCategory] = useState({
     id: '',
@@ -92,15 +88,29 @@ export default function AdminPanel({
         .map(s => s.trim())
         .filter(s => s.length > 0);
 
-      const category: Category = {
+      const categoryData = {
         id: newCategory.id.toLowerCase(),
         name: newCategory.name,
         subcategories
       };
 
-      setCategories(prev => [...prev, category]);
-      setNewCategory({ id: '', name: '', subcategories: '' });
-      toast.success('Categoria adicionada com sucesso!');
+      // Salvar no banco de dados
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(categoryData),
+      });
+
+      if (response.ok) {
+        const newCategoryFromDB = await response.json();
+        setCategories(prev => [...prev, newCategoryFromDB]);
+        setNewCategory({ id: '', name: '', subcategories: '' });
+        toast.success('Categoria adicionada com sucesso!');
+      } else {
+        throw new Error('Erro ao salvar categoria');
+      }
     } catch (error) {
       console.error('Erro ao adicionar categoria:', error);
       toast.error('Erro ao adicionar categoria');
@@ -115,8 +125,17 @@ export default function AdminPanel({
     }
 
     try {
-      setCategories(prev => prev.filter(c => c.id !== id));
-      toast.success('Categoria removida com sucesso!');
+      // Remover do banco de dados
+      const response = await fetch(`/api/categories?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setCategories(prev => prev.filter(c => c.id !== id));
+        toast.success('Categoria removida com sucesso!');
+      } else {
+        throw new Error('Erro ao remover categoria');
+      }
     } catch (error) {
       console.error('Erro ao remover categoria:', error);
       toast.error('Erro ao remover categoria');
@@ -133,23 +152,32 @@ export default function AdminPanel({
         return;
       }
 
-      const dashboard: Dashboard = {
-        id: Date.now().toString(),
+      const dashboardData = {
         title: newDashboard.title,
         description: newDashboard.description,
         embed_url: newDashboard.embed_url,
         category: newDashboard.category,
         tags: [newDashboard.category],
-        isFavorite: false,
         area: newDashboard.category
       };
 
-      // Adicionar o novo dashboard à lista
-      setDashboards([...dashboards, dashboard]);
-      setNewDashboard({ title: '', description: '', embed_url: '', category: '' });
-      
-      // Notificação de sucesso
-      toast.success('Dashboard adicionado com sucesso!');
+      // Salvar no banco de dados
+      const response = await fetch('/api/dashboards', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dashboardData),
+      });
+
+      if (response.ok) {
+        const newDashboardFromDB = await response.json();
+        setDashboards([...dashboards, newDashboardFromDB]);
+        setNewDashboard({ title: '', description: '', embed_url: '', category: '' });
+        toast.success('Dashboard adicionado com sucesso!');
+      } else {
+        throw new Error('Erro ao salvar dashboard');
+      }
     } catch (error) {
       console.error('Erro ao adicionar dashboard:', error);
       toast.error('Erro ao adicionar dashboard');

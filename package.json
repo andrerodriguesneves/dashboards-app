@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node test-endpoint.js",
+    "test:local": "node test-endpoint.js http://localhost:3000/api/test",
+    "test:vercel": "node test-endpoint.js https://seu-projeto.vercel.app/api/test",
+    "debug": "node test-endpoint.js http://localhost:3000/api/debug",
+    "debug:vercel": "node test-endpoint.js https://seu-projeto.vercel.app/api/debug"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.55.0",
