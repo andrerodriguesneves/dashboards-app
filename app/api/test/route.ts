@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
       
       // Verificar tabelas principais
       const tables = ['categories', 'dashboards', 'users'];
-      const tableStatus = {};
+      const tableStatus: { [key: string]: string } = {};
 
       for (const table of tables) {
         try {
@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
       '/api/config'
     ];
 
-    const endpointStatus = {};
+    const endpointStatus: { [key: string]: string } = {};
 
     for (const endpoint of endpoints) {
       try {

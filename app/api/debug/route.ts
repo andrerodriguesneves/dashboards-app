@@ -48,7 +48,17 @@ export async function GET(request: NextRequest) {
     // Teste 4: Verificar dados nas tabelas
     for (const table of existingTables) {
       try {
-        const countQuery = await sql`SELECT COUNT(*) as count FROM ${sql(table)}`;
+        let countQuery;
+        if (table === 'dashboards') {
+          countQuery = await sql`SELECT COUNT(*) as count FROM dashboards`;
+        } else if (table === 'categories') {
+          countQuery = await sql`SELECT COUNT(*) as count FROM categories`;
+        } else if (table === 'portal_config') {
+          countQuery = await sql`SELECT COUNT(*) as count FROM portal_config`;
+        } else {
+          countQuery = await sql`SELECT COUNT(*) as count FROM information_schema.tables WHERE table_name = ${table}`;
+        }
+        
         debugInfo.database.tables[table] = {
           exists: true,
           count: parseInt(countQuery.rows[0].count)
