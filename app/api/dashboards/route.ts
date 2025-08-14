@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../lib/supabase';
+import { isAuthenticated } from '../../../lib/auth';
 
 export async function GET() {
   try {
@@ -35,6 +36,14 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar autenticação
+    if (!isAuthenticated(request)) {
+      return NextResponse.json(
+        { error: 'Não autorizado' },
+        { status: 401 }
+      );
+    }
+
     if (!supabase) {
       return NextResponse.json(
         { error: 'Supabase não configurado' },

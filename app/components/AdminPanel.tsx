@@ -161,11 +161,19 @@ export default function AdminPanel({
         area: newDashboard.category
       };
 
+      // Obter token de autenticação
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        toast.error('Token de autenticação não encontrado');
+        return;
+      }
+
       // Salvar no banco de dados
       const response = await fetch('/api/dashboards', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(dashboardData),
       });
@@ -192,12 +200,37 @@ export default function AdminPanel({
     }
 
     try {
-      // Remover o dashboard da lista
-      setDashboards(dashboards.filter(d => d.id !== id));
-      toast.success('Dashboard removido com sucesso!');
+      setLoading(true);
+      
+      // Obter token de autenticação
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        toast.error('Token de autenticação não encontrado');
+        return;
+      }
+      
+      // Chamar a API para remover o dashboard
+      const response = await fetch(`/api/dashboards/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        // Remover o dashboard da lista local
+        setDashboards(dashboards.filter(d => d.id !== id));
+        toast.success('Dashboard removido com sucesso!');
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao remover dashboard');
+      }
     } catch (error) {
       console.error('Erro ao remover dashboard:', error);
       toast.error('Erro ao remover dashboard');
+    } finally {
+      setLoading(false);
     }
   };
 
